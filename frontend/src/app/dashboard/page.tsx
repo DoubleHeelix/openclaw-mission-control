@@ -44,6 +44,7 @@ import {
 } from "@/api/generated/metrics/metrics";
 import type { DashboardMetricsApiV1MetricsDashboardGetRangeKey } from "@/api/generated/model/dashboardMetricsApiV1MetricsDashboardGetRangeKey";
 import { parseApiDatetime } from "@/lib/datetime";
+import { cn } from "@/lib/utils";
 
 type RangeKey = DashboardMetricsApiV1MetricsDashboardGetRangeKey;
 type BucketKey = "hour" | "day" | "week" | "month";
@@ -200,15 +201,22 @@ function KpiCard({
   sublabel,
   icon,
   progress = 0,
+  className,
 }: {
   label: string;
   value: string;
   sublabel?: string;
   icon: React.ReactNode;
   progress?: number;
+  className?: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div
+      className={cn(
+        "motion-panel motion-card-hover animate-lift-in rounded-2xl border border-[color:var(--border)] bg-white/88 p-6 shadow-[0_18px_38px_rgba(8,33,51,0.08)] backdrop-blur",
+        className,
+      )}
+    >
       <div className="mb-4 flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           {label}
@@ -225,7 +233,7 @@ function KpiCard({
       ) : null}
       <div className="mt-3 h-1 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600"
+          className="h-full rounded-full bg-[linear-gradient(90deg,#0891b2_0%,#0ea5e9_48%,#10b981_100%)] transition-[width] duration-700 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -237,13 +245,20 @@ function ChartCard({
   title,
   subtitle,
   children,
+  className,
 }: {
   title: string;
   subtitle: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div
+      className={cn(
+        "motion-panel motion-card-hover animate-lift-in rounded-2xl border border-[color:var(--border)] bg-white/88 p-6 shadow-[0_18px_38px_rgba(8,33,51,0.08)] backdrop-blur",
+        className,
+      )}
+    >
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="font-heading text-base font-semibold text-slate-900">
@@ -436,10 +451,10 @@ export default function DashboardPage() {
       </SignedOut>
       <SignedIn>
         <DashboardSidebar />
-        <main className="flex-1 overflow-y-auto bg-slate-50">
-          <div className="border-b border-slate-200 bg-white px-8 py-6">
+        <main className="surface-shell animate-fade-in flex-1 overflow-y-auto">
+          <div className="surface-glass-strong motion-panel border-b border-[color:var(--border)] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
             <div className="flex items-center justify-between gap-4">
-              <div>
+              <div className="animate-lift-in">
                 <h2 className="font-heading text-2xl font-semibold text-slate-900 tracking-tight">
                   Dashboard
                 </h2>
@@ -447,7 +462,7 @@ export default function DashboardPage() {
                   Monitor your mission control operations
                 </p>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-3">
+              <div className="animate-stagger-1 animate-lift-in flex flex-wrap items-center justify-end gap-3">
                 <DropdownSelect
                   value={selectedRange}
                   onValueChange={(value) => {
@@ -535,15 +550,15 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             {metricsQuery.error ? (
-              <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+              <div className="surface-glass-strong animate-lift-in rounded-2xl border border-[color:var(--border)] p-4 text-sm text-slate-600 shadow-sm">
                 {metricsQuery.error.message}
               </div>
             ) : null}
 
             {metricsQuery.isLoading && !metrics ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+              <div className="surface-glass-strong motion-panel animate-lift-in rounded-2xl border border-[color:var(--border)] p-6 text-sm text-slate-500 shadow-sm">
                 Loading dashboard metrics…
               </div>
             ) : null}
@@ -556,29 +571,37 @@ export default function DashboardPage() {
                     value={formatNumber(metrics.kpis.active_agents)}
                     icon={<Users className="h-4 w-4" />}
                     progress={activeProgress}
+                    className="animate-stagger-1"
                   />
                   <KpiCard
                     label="Tasks in progress"
                     value={formatNumber(metrics.kpis.tasks_in_progress)}
                     icon={<PenSquare className="h-4 w-4" />}
                     progress={wipProgress}
+                    className="animate-stagger-2"
                   />
                   <KpiCard
                     label="Error rate"
                     value={formatPercent(metrics.kpis.error_rate_pct)}
                     icon={<Activity className="h-4 w-4" />}
                     progress={errorProgress}
+                    className="animate-stagger-3"
                   />
                   <KpiCard
                     label="Median cycle time"
                     value={formatHours(metrics.kpis.median_cycle_time_hours_7d)}
                     icon={<Timer className="h-4 w-4" />}
                     progress={cycleProgress}
+                    className="animate-stagger-4"
                   />
                 </div>
 
                 <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                  <ChartCard title="Completed Tasks" subtitle="Throughput">
+                  <ChartCard
+                    title="Completed Tasks"
+                    subtitle="Throughput"
+                    className="animate-stagger-1"
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={throughputSeries}
@@ -623,7 +646,11 @@ export default function DashboardPage() {
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  <ChartCard title="Avg Hours to Review" subtitle="Cycle time">
+                  <ChartCard
+                    title="Avg Hours to Review"
+                    subtitle="Cycle time"
+                    className="animate-stagger-2"
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
                         data={cycleSeries}
@@ -672,7 +699,11 @@ export default function DashboardPage() {
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  <ChartCard title="Failed Events" subtitle="Error rate">
+                  <ChartCard
+                    title="Failed Events"
+                    subtitle="Error rate"
+                    className="animate-stagger-3"
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
                         data={errorSeries}
@@ -722,6 +753,7 @@ export default function DashboardPage() {
                   <ChartCard
                     title="Status Distribution"
                     subtitle="Work in progress"
+                    className="animate-stagger-4"
                   >
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart

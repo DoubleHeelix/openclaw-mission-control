@@ -1,4 +1,5 @@
 import { getLocalAuthToken, isLocalAuthMode } from "@/auth/localAuth";
+import { getApiBaseUrl } from "@/lib/api-base";
 
 type ClerkSession = {
   getToken: () => Promise<string>;
@@ -35,21 +36,8 @@ const resolveClerkToken = async (): Promise<string | null> => {
   }
 };
 
-export const customFetch = async <T>(
-  url: string,
-  options: RequestInit,
-): Promise<T> => {
-  const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!rawBaseUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is not set.");
-  }
-  const baseUrl = rawBaseUrl.replace(/\/+$/, "");
-
-  const headers = new Headers(options.headers);
-  const hasBody = options.body !== undefined && options.body !== null;
-  if (hasBody && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
+const buildAuthorizedHeaders = async (headersInit?: HeadersInit): Promise<Headers> => {
+  const headers = new Headers(headersInit);
   if (isLocalAuthMode() && !headers.has("Authorization")) {
     const token = getLocalAuthToken();
     if (token) {
@@ -62,7 +50,25 @@ export const customFetch = async <T>(
       headers.set("Authorization", `Bearer ${token}`);
     }
   }
+  return headers;
+};
 
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit,
+): Promise<T> => {
+  const baseUrl = getApiBaseUrl();
+
+  const headers = await buildAuthorizedHeaders(options.headers);
+  const hasBody = options.body !== undefined && options.body !== null;
+  const isBodyWithImplicitContentType =
+    options.body instanceof FormData ||
+    options.body instanceof URLSearchParams ||
+    options.body instanceof Blob ||
+    options.body instanceof ArrayBuffer;
+  if (hasBody && !isBodyWithImplicitContentType && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   const response = await fetch(`${baseUrl}${url}`, {
     ...options,
     headers,
@@ -127,4 +133,41 @@ export const customFetch = async <T>(
     status: response.status,
     headers: response.headers,
   } as T;
+};
+
+export const customFetchBlob = async (
+  url: string,
+  options: RequestInit = {},
+): Promise<Blob> => {
+  const baseUrl = getApiBaseUrl();
+  const headers = await buildAuthorizedHeaders(options.headers);
+
+  const response = await fetch(`${baseUrl}${url}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type") ?? "";
+    let errorData: unknown = null;
+    const isJson =
+      contentType.includes("application/json") || contentType.includes("+json");
+    if (isJson) {
+      errorData = (await response.json().catch(() => null)) as unknown;
+    } else {
+      errorData = await response.text().catch(() => "");
+    }
+
+    let message =
+      typeof errorData === "string" && errorData ? errorData : "Request failed";
+    if (errorData && typeof errorData === "object") {
+      const detail = (errorData as { detail?: unknown }).detail;
+      if (typeof detail === "string" && detail) {
+        message = detail;
+      }
+    }
+    throw new ApiError(response.status, message, errorData);
+  }
+
+  return response.blob();
 };

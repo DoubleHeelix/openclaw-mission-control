@@ -20,8 +20,8 @@ export function GlobalLoader() {
       data-state={visible ? "visible" : "hidden"}
       role="status"
     >
-      <div className="h-full w-full overflow-hidden bg-[var(--accent-soft)]">
-        <div className="h-full w-full animate-progress-shimmer bg-[linear-gradient(90deg,transparent_0%,var(--accent)_50%,transparent_100%)]" />
+      <div className="h-full w-full overflow-hidden bg-[linear-gradient(90deg,rgba(34,211,238,0.12)_0%,rgba(14,165,233,0.2)_50%,rgba(16,185,129,0.12)_100%)]">
+        <div className="h-full w-full animate-progress-shimmer bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.08)_12%,var(--accent)_45%,#10b981_70%,transparent_100%)]" />
       </div>
       <span className="sr-only">Loading</span>
     </div>

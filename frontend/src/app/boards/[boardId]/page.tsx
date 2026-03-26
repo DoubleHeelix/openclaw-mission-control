@@ -3003,7 +3003,7 @@ export default function BoardDetailPage() {
           )}
         >
           <div className="sticky top-0 z-30 border-b border-slate-200 bg-white shadow-sm">
-            <div className="px-8 py-6">
+            <div className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h1 className="mt-2 text-2xl font-semibold text-slate-900 tracking-tight">
@@ -3139,9 +3139,9 @@ export default function BoardDetailPage() {
             </div>
           </div>
 
-          <div className="relative flex gap-6 p-6">
+          <div className="relative flex flex-col gap-6 p-4 sm:p-6 xl:flex-row">
             {isOrgAdmin ? (
-              <aside className="flex h-full w-64 flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
+              <aside className="hidden h-full w-64 flex-col rounded-xl border border-slate-200 bg-white shadow-sm xl:flex">
                 <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">

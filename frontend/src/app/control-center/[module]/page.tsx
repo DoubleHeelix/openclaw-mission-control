@@ -2,18 +2,32 @@
 
 export const dynamic = "force-dynamic";
 
+import dynamicImport from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-import { BudgetWorkspaceV2 } from "@/components/control-center/BudgetWorkspaceV2";
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
 import { ModuleWorkspace } from "@/components/control-center/ModuleWorkspace";
 import { buttonVariants } from "@/components/ui/button";
 import { useControlCenterState } from "@/lib/control-center";
 
+const BudgetWorkspaceV2 = dynamicImport(
+  () => import("@/components/control-center/BudgetWorkspaceV2").then((mod) => mod.BudgetWorkspaceV2),
+  {
+    ssr: false,
+    loading: () => <p className="text-sm text-slate-500">Loading budget workspace...</p>,
+  },
+);
+
 export default function ControlCenterModulePage() {
+  const pageRevisionClass = "budget-page-rev-20260320-2";
+  const [mounted, setMounted] = useState(false);
   const params = useParams<{ module: string }>();
   const slug = params?.module ?? "";
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const {
     ready,
     state,
@@ -47,6 +61,7 @@ export default function ControlCenterModulePage() {
 
   return (
     <DashboardPageLayout
+      contentClassName={pageRevisionClass}
       signedOut={{
         message: "Sign in to open this control center module.",
         forceRedirectUrl: `/control-center/${slug}`,
@@ -66,7 +81,9 @@ export default function ControlCenterModulePage() {
         </Link>
       }
     >
-      {!ready ? (
+      {!mounted ? (
+        <p className="text-sm text-slate-500">Loading module...</p>
+      ) : !ready ? (
         <p className="text-sm text-slate-500">Loading module...</p>
       ) : !selectedModule ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

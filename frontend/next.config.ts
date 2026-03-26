@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  typescript: {
+    ignoreBuildErrors: process.env.NEXT_IGNORE_BUILD_ERRORS === "1",
+  },
 };
 
 export default nextConfig;

@@ -22,6 +22,12 @@ export default defineConfig({
       openMode: 0,
     },
     setupNodeEvents(on, config) {
+      const publishableKey =
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+        process.env.CLERK_PUBLISHABLE_KEY;
+      if (!publishableKey) {
+        return config;
+      }
       return clerkSetup({ config });
     },
   },

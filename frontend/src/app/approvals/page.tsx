@@ -167,8 +167,8 @@ function GlobalApprovalsInner() {
 
   return (
     <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="p-6">
-        <div className="h-[calc(100vh-160px)] min-h-[520px]">
+      <div className="p-4 sm:p-6">
+        <div className="min-h-[420px] lg:h-[calc(100vh-160px)] lg:min-h-[520px]">
           <BoardApprovalsPanel
             boardId="global"
             approvals={approvals}

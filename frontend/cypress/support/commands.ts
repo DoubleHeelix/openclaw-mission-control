@@ -7,6 +7,7 @@ type ClerkOtpLoginOptions = {
 };
 
 const APP_LOAD_TIMEOUT_MS = 30_000;
+const LOCAL_AUTH_TOKEN_MIN_LENGTH = 50;
 
 function getEnv(name: string, fallback?: string): string {
   const value = Cypress.env(name) as string | undefined;
@@ -21,14 +22,11 @@ function getEnv(name: string, fallback?: string): string {
 function clerkOriginFromPublishableKey(): string {
   const key = getEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY");
 
-  // pk_test_<base64(domain$)> OR pk_live_<...>
   const m = /^pk_(?:test|live)_(.+)$/.exec(key);
   if (!m) throw new Error(`Unexpected Clerk publishable key format: ${key}`);
 
-  const decoded = atob(m[1]); // e.g. beloved-ghost-73.clerk.accounts.dev$
+  const decoded = atob(m[1]);
   const domain = decoded.replace(/\$$/, "");
-
-  // Some flows redirect to *.accounts.dev (no clerk. subdomain)
   const normalized = domain.replace(".clerk.accounts.dev", ".accounts.dev");
   return `https://${normalized}`;
 }
@@ -47,9 +45,52 @@ Cypress.Commands.add("waitForAppLoaded", () => {
     timeout: APP_LOAD_TIMEOUT_MS,
   }).should("not.exist");
 
-  cy.get("[data-cy='global-loader']", {
+  cy.get("body", { timeout: APP_LOAD_TIMEOUT_MS }).then(($body) => {
+    const globalLoader = $body.find("[data-cy='global-loader']");
+    if (globalLoader.length > 0) {
+      cy.wrap(globalLoader).should("have.attr", "aria-hidden", "true");
+    }
+  });
+});
+
+Cypress.Commands.add("loginWithLocalToken", (token?: string, path = "/control-center/budget-e2e") => {
+  const resolvedToken = token ?? getEnv("LOCAL_AUTH_TOKEN", "x".repeat(64));
+  if (resolvedToken.length < LOCAL_AUTH_TOKEN_MIN_LENGTH) {
+    throw new Error(`LOCAL_AUTH_TOKEN must be at least ${LOCAL_AUTH_TOKEN_MIN_LENGTH} characters.`);
+  }
+
+  cy.visit(path, {
+    onBeforeLoad(win) {
+      win.sessionStorage.setItem("mc_local_auth_token", resolvedToken);
+      win.localStorage.setItem("mc_local_auth_token", resolvedToken);
+    },
+  });
+
+  cy.get("body", { timeout: APP_LOAD_TIMEOUT_MS }).then(($body) => {
+    if ($body.text().includes("Local Authentication")) {
+      cy.window().then((win) => {
+        win.sessionStorage.setItem("mc_local_auth_token", resolvedToken);
+        win.localStorage.setItem("mc_local_auth_token", resolvedToken);
+      });
+      cy.get("input").first().clear().type(resolvedToken, { log: false });
+      cy.contains("button", "Enter Mission Control").click();
+    }
+  });
+
+  cy.location("pathname", { timeout: APP_LOAD_TIMEOUT_MS }).should("eq", path);
+});
+
+Cypress.Commands.add("waitForBudgetWorkspaceLoaded", () => {
+  cy.waitForAppLoaded();
+  cy.get("[data-cy='budget-workspace-root']", {
     timeout: APP_LOAD_TIMEOUT_MS,
-  }).should("have.attr", "aria-hidden", "true");
+  }).should("be.visible");
+  cy.get("body", { timeout: APP_LOAD_TIMEOUT_MS }).should(($body) => {
+    const hasReview = $body.text().includes("Needs Attention");
+    const hasOverview = $body.text().includes("Financial picture at a glance");
+    const hasSections = $body.find("[data-cy='budget-section']").length > 0;
+    expect(hasReview || hasOverview || hasSections, "budget workspace ready").to.equal(true);
+  });
 });
 
 Cypress.Commands.add("loginWithClerkOtp", () => {
@@ -61,8 +102,6 @@ Cypress.Commands.add("loginWithClerkOtp", () => {
 
   const opts: ClerkOtpLoginOptions = { clerkOrigin, email, otp };
 
-  // Navigate to a dedicated sign-in route that renders Clerk SignIn top-level.
-  // Cypress cannot reliably drive Clerk modal/iframe flows.
   cy.visit("/sign-in");
 
   const emailSelector =
@@ -113,27 +152,6 @@ Cypress.Commands.add("loginWithClerkOtp", () => {
     });
   };
 
-  const fillOtpAndSubmit = (otp: string) => {
-    waitForOtpOrMethod();
-    maybeSelectEmailCodeMethod();
-
-    cy.get(otpSelector, { timeout: 60_000 }).first().clear().type(otp, { delay: 10 });
-
-    cy.get("body").then(($body) => {
-      const hasSubmit = $body
-        .find(continueSelector)
-        .toArray()
-        .some((el) => /verify|continue|sign in|confirm/i.test(el.textContent || ""));
-      if (hasSubmit) {
-        cy.contains(continueSelector, /verify|continue|sign in|confirm/i, { timeout: 20_000 })
-          .should("be.visible")
-          .click({ force: true });
-      }
-    });
-  };
-
-  // Clerk SignIn can start on our app origin and then redirect to Clerk-hosted UI.
-  // Do email step first, then decide where the OTP step lives based on the *current* origin.
   fillEmailStep(opts.email);
 
   cy.location("origin", { timeout: 60_000 }).then((origin) => {
@@ -196,30 +214,40 @@ Cypress.Commands.add("loginWithClerkOtp", () => {
           });
         },
       );
-    } else {
-      fillOtpAndSubmit(opts.otp);
+      return;
     }
+
+    const fillOtpAndSubmit = (otp: string) => {
+      waitForOtpOrMethod();
+      maybeSelectEmailCodeMethod();
+
+      cy.get(otpSelector, { timeout: 60_000 }).first().clear().type(otp, { delay: 10 });
+
+      cy.get("body").then(($body) => {
+        const hasSubmit = $body
+          .find(continueSelector)
+          .toArray()
+          .some((el) => /verify|continue|sign in|confirm/i.test(el.textContent || ""));
+        if (hasSubmit) {
+          cy.contains(continueSelector, /verify|continue|sign in|confirm/i, { timeout: 20_000 })
+            .should("be.visible")
+            .click({ force: true });
+        }
+      });
+    };
+
+    fillOtpAndSubmit(opts.otp);
   });
+
+  cy.waitForAppLoaded();
 });
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Cypress {
     interface Chainable {
-      /**
-       * Waits for route-level and global app loaders to disappear.
-       */
       waitForAppLoaded(): Chainable<void>;
-
-      /**
-       * Logs in via the real Clerk SignIn page using deterministic OTP credentials.
-       *
-       * Optional env vars (CYPRESS_*):
-       * - CLERK_ORIGIN (e.g. https://<subdomain>.accounts.dev)
-       * - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (used to derive origin when CLERK_ORIGIN not set)
-       * - CLERK_TEST_EMAIL (default: jane+clerk_test@example.com)
-       * - CLERK_TEST_OTP (default: 424242)
-       */
+      loginWithLocalToken(token?: string, path?: string): Chainable<void>;
+      waitForBudgetWorkspaceLoaded(): Chainable<void>;
       loginWithClerkOtp(): Chainable<void>;
     }
   }

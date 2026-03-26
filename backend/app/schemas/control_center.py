@@ -14,9 +14,10 @@ ControlModuleCategory = Literal[
     "network_marketing",
     "newsletters",
     "podcasts",
+    "paperclip",
     "custom",
 ]
-NetworkMarketingViewMode = Literal["pipeline", "team_tree"]
+NetworkMarketingViewMode = Literal["pipeline", "team_tree", "cold_contact"]
 PodcastJobStatus = Literal["uploaded", "pending", "processing", "completed", "failed"]
 
 
@@ -177,3 +178,119 @@ class PodcastClassificationResponse(SQLModel):
     audio_path: str | None = None
     transcript_path: str | None = None
     summary_path: str | None = None
+
+
+class PodcastActionExtractionResponse(SQLModel):
+    """Result payload for extracted actions promoted to tasks."""
+
+    record_id: UUID
+    created_task_ids: list[UUID] = Field(default_factory=list)
+    extracted_actions_count: int = 0
+    skipped_duplicates: int = 0
+    action_hashes: list[str] = Field(default_factory=list)
+
+
+class PodcastPipelineRunResponse(SQLModel):
+    """Result payload for running/continuing podcast processing pipeline."""
+
+    record_id: UUID
+    pipeline_status: Literal["pending", "processing", "completed", "failed"]
+    completed_stages: list[str] = Field(default_factory=list)
+    retries: dict[str, int] = Field(default_factory=dict)
+    failed_stage: str | None = None
+    max_retries: int = 1
+
+
+class PodcastRecordViewResponse(SQLModel):
+    """Resolved podcast artifact payload for the detail drawer."""
+
+    record_id: UUID
+    title: str | None = None
+    summary: str | None = None
+    category: str | None = None
+    transcript_path: str | None = None
+    summary_path: str | None = None
+    transcript_text: str | None = None
+    transcript_words: list[dict[str, object]] = Field(default_factory=list)
+    transcript_vtt_text: str | None = None
+    summary_text: str | None = None
+    action_points: list[str] = Field(default_factory=list)
+    key_points: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+
+
+class EventScanRequest(SQLModel):
+    """Payload for scanning event source URLs for a single week."""
+
+    module_id: str
+    module_slug: str
+    module_title: str
+    sources: list[str] = Field(default_factory=list)
+    week_start: str | None = None
+
+
+class EventScanItem(SQLModel):
+    """Normalized event item returned after scanning sources."""
+
+    title: str
+    event_url: str
+    source_url: str
+    source_name: str
+    summary: str | None = None
+    start_at: str | None = None
+    end_at: str | None = None
+    venue: str | None = None
+    address: str | None = None
+    city: str | None = None
+    country: str | None = None
+    organizer: str | None = None
+    group_name: str | None = None
+    price: str | None = None
+    currency: str | None = None
+    is_free: bool = False
+    image_url: str | None = None
+    event_type: str | None = None
+    status: str | None = None
+    cancelled: bool = False
+    online_or_hybrid: str | None = None
+    attendee_count: int | None = None
+    review_count: int | None = None
+    ticket_url: str | None = None
+    timezone: str | None = None
+
+
+class EventScanResponse(SQLModel):
+    """Summary payload for a weekly event-source scan."""
+
+    imported: int = 0
+    created: int = 0
+    skipped: int = 0
+    week_start: str | None = None
+    week_end: str | None = None
+    imported_count: int = 0
+    skipped_duplicates: int = 0
+    message: str | None = None
+    events: list[EventScanItem] = Field(default_factory=list)
+    diagnostics: list["EventScanSourceDiagnostic"] = Field(default_factory=list)
+    skipped_reasons: dict[str, int] = Field(default_factory=dict)
+
+
+class EventScanSourceDiagnostic(SQLModel):
+    """Per-source scan diagnostics so the UI can explain weak sources."""
+
+    source_url: str
+    source_name: str
+    scanned_candidates: int = 0
+    imported: int = 0
+    skipped: int = 0
+    failure_reasons: dict[str, int] = Field(default_factory=dict)
+
+
+class EventGeocodeResponse(SQLModel):
+    """Simple geocode lookup response for event distance sorting."""
+
+    ok: bool
+    lat: float | None = None
+    lon: float | None = None
+    display_name: str | None = None

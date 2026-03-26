@@ -8,7 +8,7 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("rounded-2xl surface-card", className)}
+    className={cn("motion-card-hover motion-panel rounded-2xl surface-card", className)}
     {...props}
   />
 ));

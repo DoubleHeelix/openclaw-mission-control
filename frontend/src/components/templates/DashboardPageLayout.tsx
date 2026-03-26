@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode, Ref } from "react";
+import { useEffect, useState } from "react";
 
 import { SignedIn, SignedOut } from "@/auth/clerk";
 
@@ -47,11 +50,17 @@ export function DashboardPageLayout({
   contentClassName,
   mainRef,
 }: DashboardPageLayoutProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const showAdminOnlyNotice =
     typeof isAdmin === "boolean" && Boolean(adminOnlyMessage) && !isAdmin;
 
   return (
     <DashboardShell>
+      {!mounted ? null : (
+        <>
       <SignedOut>
         <SignedOutPanel
           message={signedOut.message}
@@ -66,44 +75,54 @@ export function DashboardPageLayout({
         <DashboardSidebar />
         <main
           ref={mainRef}
-          className={cn("flex-1 overflow-y-auto bg-slate-50", mainClassName)}
+          className={cn(
+            "surface-shell animate-fade-in flex-1 overflow-y-auto",
+            mainClassName,
+          )}
         >
           <div
             className={cn(
-              "border-b border-slate-200 bg-white",
+              "surface-glass-strong motion-panel animate-lift-in border-b border-[color:var(--border)]",
               stickyHeader && "sticky top-0 z-30",
               headerClassName,
             )}
           >
-            <div className="px-8 py-6">
+            <div className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
               {headerActions ? (
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h1 className="font-heading text-2xl font-semibold tracking-tight text-slate-900">
+                  <div className="animate-stagger-1 animate-lift-in">
+                    <h1 className="font-heading text-2xl font-semibold tracking-tight text-strong">
                       {title}
                     </h1>
                     {description ? (
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="mt-1 text-sm text-muted">
                         {description}
                       </p>
                     ) : null}
                   </div>
-                  {headerActions}
+                  <div className="animate-stagger-2 animate-lift-in">
+                    {headerActions}
+                  </div>
                 </div>
               ) : (
-                <div>
-                  <h1 className="font-heading text-2xl font-semibold tracking-tight text-slate-900">
+                <div className="animate-stagger-1 animate-lift-in">
+                  <h1 className="font-heading text-2xl font-semibold tracking-tight text-strong">
                     {title}
                   </h1>
                   {description ? (
-                    <p className="mt-1 text-sm text-slate-500">{description}</p>
+                    <p className="mt-1 text-sm text-muted">{description}</p>
                   ) : null}
                 </div>
               )}
             </div>
           </div>
 
-          <div className={cn("p-8", contentClassName)}>
+          <div
+            className={cn(
+              "animate-stagger-2 animate-lift-in p-4 sm:p-6 lg:p-8",
+              contentClassName,
+            )}
+          >
             {showAdminOnlyNotice ? (
               <AdminOnlyNotice message={adminOnlyMessage ?? ""} />
             ) : (
@@ -112,6 +131,8 @@ export function DashboardPageLayout({
           </div>
         </main>
       </SignedIn>
+        </>
+      )}
     </DashboardShell>
   );
 }

@@ -11,6 +11,18 @@ from app.models.board_onboarding import BoardOnboardingSession
 from app.models.board_webhook_payloads import BoardWebhookPayload
 from app.models.board_webhooks import BoardWebhook
 from app.models.boards import Board
+from app.models.budget import (
+    BudgetImportSession,
+    BudgetLineItem,
+    BudgetManualOverride,
+    BudgetMerchantMemory,
+    BudgetNormalizedTransaction,
+    BudgetParsedStatement,
+    BudgetParsedTransaction,
+    BudgetRawFile,
+    BudgetSnapshot,
+    BudgetTransactionClassification,
+)
 from app.models.gateways import Gateway
 from app.models.organization_board_access import OrganizationBoardAccess
 from app.models.organization_invite_board_access import OrganizationInviteBoardAccess
@@ -42,6 +54,16 @@ __all__ = [
     "BoardOnboardingSession",
     "BoardGroup",
     "Board",
+    "BudgetImportSession",
+    "BudgetLineItem",
+    "BudgetManualOverride",
+    "BudgetMerchantMemory",
+    "BudgetNormalizedTransaction",
+    "BudgetParsedStatement",
+    "BudgetParsedTransaction",
+    "BudgetRawFile",
+    "BudgetSnapshot",
+    "BudgetTransactionClassification",
     "Gateway",
     "GatewayInstalledSkill",
     "MarketplaceSkill",
