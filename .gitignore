@@ -36,4 +36,4 @@ frontend/.next_old_*/
 workspace/events-share-app*/
 workspace/network_marketing_command_center/
 workspace/cold_contact_helper_config.json
-agents/
+/agents/
