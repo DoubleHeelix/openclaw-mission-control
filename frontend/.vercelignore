@@ -1,0 +1,10 @@
+node_modules
+.next
+.cypress-cache
+coverage
+.env
+.env.local
+dist
+out
+*.log
+tsconfig.tsbuildinfo
